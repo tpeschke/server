@@ -5,44 +5,60 @@ $path_info = get__PATH_INFO($_SERVER['REQUEST_URI']);
 // get the HTTP method, path and body of the request
 $method = $_SERVER['REQUEST_METHOD'];
 $request = explode('/', trim($path_info,'/'));
-$input = json_decode(file_get_contents('php://input'),true);
- 
+
 // connect to the mysql database
 $link = mysqli_connect($host, $user, $pass, $name);
 mysqli_set_charset($link,'utf8');
- 
-// retrieve the table and key from the path
-$table = preg_replace('/[^a-z0-9_]+/i','',array_shift($request));
-$key = array_shift($request)+0;
- 
+
+// retrieve the endpoint and param from the path
+$endpoint = preg_replace('/[^a-z0-9_]+/i','',array_shift($request));
+$param = array_shift($request)+0;
+
 // escape the columns and values from the input object
-$columns = preg_replace('/[^a-z0-9_]+/i','', array_keys($input));
-$values = array_map(function ($value) use ($link) {
-  if ($value===null) return null;
-  return mysqli_real_escape_string($link,(string)$value);
-},array_values($input));
- 
-// build the SET part of the SQL command
-$set = '';
-for ($i=0;$i<count($columns);$i++) {
-  $set.=($i>0?',':'').'`'.$columns[$i].'`=';
-  $set.=($values[$i]===null?'NULL':'"'.$values[$i].'"');
+$input = json_decode(file_get_contents('php://input'),true);
+if (!$input) $input = [];
+if($endpoint == 'boardSave') {
+  $params = $input[0];
+  $input = $input[1];
 }
+
+// $columns = preg_replace('/[^a-z0-9_]+/i','', array_keys($input));
+// $values = array_map(function ($value) use ($link) {
+//   if ($value===null) return null;
+//   return mysqli_real_escape_string($link,(string)$value);
+// },array_values($input));
+
+// build the SET part of the SQL command
+// $set = '';
+// for ($i=0;$i<count($columns);$i++) {
+//   $set.=($i>0?',':'').'`'.$columns[$i].'`=';
+//   $set.=($values[$i]===null?'NULL':'"'.$values[$i].'"');
+// }
  
 // create SQL based on HTTP method
+require 'sqlQueries.php';
 switch ($method) {
   case 'GET':
-    $sql = "select * from `$table`"; break;
+    switch($endpoint) {
+      case 'board': $result = mysqli_query( $link, get_board($param) ); break;
+      // Should be changed over to user id
+      case 'boards': $result = mysqli_query($link, get_all_boards(1) ); break;
+      case 'step': $result = mysqli_query($link, get_step($param) ); break;
+    }; break;
   case 'PUT':
-    $sql = "update `$table` set $set where id=$key"; break;
+    switch($endpoint) {
+      case 'boardSave': 
+        for ($i=0;$i<count($input);$i++) {
+          mysqli_query($link, update_steps($input[$i]['strStepName'], $input[$i]['txtContent'], $input[$i]['lngStepId']) );
+        }
+        $result = true; 
+        break;
+    }; break;
   case 'POST':
-    $sql = "insert into `$table` set $set"; break;
+    break;
   case 'DELETE':
-    $sql = "delete `$table` where id=$key"; break;
+    break;
 }
- 
-// excecute SQL statement
-$result = mysqli_query($link,$sql);
  
 // die if SQL statement failed
 if (!$result) {
@@ -51,12 +67,12 @@ if (!$result) {
 }
  
 // print results, insert id or affected row count
-if ($method == 'GET') {
-  if (!$key) echo '[';
+if ($method == 'GET' || $method == 'POST') {
+  if (!$param) echo '[';
   for ($i=0;$i<mysqli_num_rows($result);$i++) {
     echo ($i>0?',':'').json_encode(mysqli_fetch_object($result));
   }
-  if (!$key) echo ']';
+  if (!$param) echo ']';
 } elseif ($method == 'POST') {
   echo mysqli_insert_id($link);
 } else {
