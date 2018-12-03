@@ -18,7 +18,7 @@ $param = array_shift($request)+0;
 $input = json_decode(file_get_contents('php://input'),true);
 if (!$input) $input = [];
 if($endpoint == 'boardSave') {
-  $params = $input[0];
+  $param = $input[0];
   $input = $input[1];
 }
 
@@ -50,14 +50,19 @@ switch ($method) {
       case 'boardSave':
         $sql = ''; 
         for ($i=0;$i<count($input);$i++) {
-          $sql .= update_steps($input[$i]['strStepName'], $input[$i]['txtContent'], $input[$i]['lngStepId']);
+          if (gettype($input[$i]['lngStepId']) == 'string') {
+            $sql .= add_step($input[$i]['strStepName'], $input[$i]['txtContent'], $input[$i]['intStepNum'], $param);
+          } else {
+            $sql .= update_steps($input[$i]['strStepName'], $input[$i]['txtContent'], $input[$i]['lngStepId']);
+          }
         }
-        mysqli_multi_query($link, $sql); 
-        $result = true;
+        $result = mysqli_multi_query($link, $sql); 
         break;
     }; break;
   case 'POST':
-    break;
+    switch($endpoint) {
+      case 'boardDeploy': break;
+    }; break;
   case 'DELETE':
     break;
 }
