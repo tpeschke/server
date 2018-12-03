@@ -11,5 +11,5 @@
     };
     // PUT sql queries
     function update_steps($name, $content, $id) {
-        return "update tblBoardSteps set strStepName = $name, txtContent = $content where lngStepId = $id;";
+        return "update tblBoardSteps set strStepName ='" . $name . "', txtContent ='" . $content . "' where lngStepId = " . $id . ";";
     };

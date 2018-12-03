@@ -47,11 +47,13 @@ switch ($method) {
     }; break;
   case 'PUT':
     switch($endpoint) {
-      case 'boardSave': 
+      case 'boardSave':
+        $sql = ''; 
         for ($i=0;$i<count($input);$i++) {
-          mysqli_query($link, update_steps($input[$i]['strStepName'], $input[$i]['txtContent'], $input[$i]['lngStepId']) );
+          $sql .= update_steps($input[$i]['strStepName'], $input[$i]['txtContent'], $input[$i]['lngStepId']);
         }
-        $result = true; 
+        mysqli_multi_query($link, $sql); 
+        $result = true;
         break;
     }; break;
   case 'POST':
