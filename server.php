@@ -72,7 +72,7 @@ if (!$result) {
   http_response_code(404);
   die(mysqli_error());
 }
- 
+
 // print results, insert id or affected row count
 if ($method == 'GET' || $method == 'POST') {
   if (!$param) echo '[';
